@@ -2,6 +2,7 @@ package com.mystores;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.time.Instant;
 
 @Entity
 class Store {
@@ -31,6 +32,26 @@ class Customer {
     @Column(nullable=false,unique=true) String email;
     @Column(nullable=false) String passwordHash;
     String name;
+    Instant passwordChangedAt;
+}
+
+@Entity
+class SellerAccount {
+    @Id Long id = 1L;
+    @Column(nullable=false,unique=true) String email;
+    @Column(nullable=false) String passwordHash;
+    @Column(nullable=false) String name = "Store owner";
+    Instant passwordChangedAt;
+}
+
+@Entity
+class PasswordResetToken {
+    @Id @GeneratedValue(strategy=GenerationType.IDENTITY) Long id;
+    @Column(nullable=false,unique=true,length=64) String tokenHash;
+    @Column(nullable=false) String email;
+    @Column(nullable=false) String role;
+    @Column(nullable=false) Instant expiresAt;
+    @Column(nullable=false) boolean used = false;
 }
 
 @Entity

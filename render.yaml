@@ -12,8 +12,24 @@ services:
         sync: false
       - key: OWNER_PASSWORD
         sync: false
+      - key: OWNER_NAME
+        value: Store owner
       - key: FRONTEND_URL
         sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: RESET_TOKEN_MINUTES
+        value: "15"
+      - key: RESET_BASE_URL
+        value: https://stores-ebaf.onrender.com
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL

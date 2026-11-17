@@ -4,8 +4,10 @@ Spring Boot 3 / Java 17 API with H2 storage, separate owner-seller and customer 
 
 ## Run locally
 
-Set `OWNER_PASSWORD` to a local development password if desired, then run `mvn spring-boot:run`. The API listens on port 8080. The default seller email is `owner@mystores.local` and the development password is `change-me-now`.
+Set `OWNER_EMAIL` and `OWNER_PASSWORD` (at least 8 characters) before running `mvn spring-boot:run`. The first startup creates the single seller account from those values. Seller passwords and customer passwords are stored as BCrypt hashes; the original password cannot be recovered. Customers can register in the app. There is no seller registration route.
 
 ## Render environment
 
-Set `OWNER_EMAIL`, a strong `OWNER_PASSWORD`, `FRONTEND_URL` (the deployed static site origin), and optionally `OPENAI_API_KEY` / `OPENAI_MODEL`. The H2 database file is stored under `/app/data`; the Render manifest mounts a disk there.
+Set `OWNER_EMAIL` to your email address and `OWNER_PASSWORD` to the initial password before the first deployment of this version. The first API startup stores the seller email and BCrypt password hash in H2. Changing these environment values later will not overwrite the existing seller row; use the password reset flow to change its password.
+
+For password reset emails, configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` and `MAIL_FROM`. For Gmail, use `smtp.gmail.com`, port `587`, and a Google App Password (not your normal Gmail password). Reset links expire after 15 minutes by default; `RESET_TOKEN_MINUTES` changes this. `RESET_BASE_URL` should be the frontend URL. Configure `FRONTEND_URL` for API CORS and optionally `OPENAI_API_KEY` / `OPENAI_MODEL`. The H2 database file is stored under `/app/data`; the Render manifest mounts a disk there.

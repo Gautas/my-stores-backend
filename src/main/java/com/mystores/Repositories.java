@@ -12,4 +12,9 @@ interface ProductRepository extends JpaRepository<Product,Long> {
     Optional<Product> findByIdAndActiveTrue(Long id);
 }
 interface CustomerRepository extends JpaRepository<Customer,Long> { Optional<Customer> findByEmailIgnoreCase(String email); }
+interface SellerAccountRepository extends JpaRepository<SellerAccount,Long> { Optional<SellerAccount> findByEmailIgnoreCase(String email); }
+interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken,Long> {
+    Optional<PasswordResetToken> findByTokenHashAndUsedFalse(String tokenHash);
+    void deleteAllByEmailIgnoreCaseAndRoleAndUsedFalse(String email,String role);
+}
 interface OrderRepository extends JpaRepository<OrderRecord,Long> { List<OrderRecord> findByCustomerIdOrderByIdDesc(Long customerId); }
