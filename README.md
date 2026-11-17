@@ -4,7 +4,7 @@ Spring Boot 3 / Java 17 API with H2 storage, separate owner-seller and customer 
 
 ## Run locally
 
-Set `OWNER_PASSWORD` to a local development password if desired, then run `gradle bootRun`. The API listens on port 8080. The default seller email is `owner@mystores.local` and the development password is `change-me-now`.
+Set `OWNER_PASSWORD` to a local development password if desired, then run `mvn spring-boot:run`. The API listens on port 8080. The default seller email is `owner@mystores.local` and the development password is `change-me-now`.
 
 ## Render environment
 
