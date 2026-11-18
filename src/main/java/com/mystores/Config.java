@@ -21,7 +21,8 @@ class Config {
         CorsConfiguration c=new CorsConfiguration();
         String configured=env.getProperty("app.cors.origin","http://localhost:4200,https://stores-ebaf.onrender.com");
         java.util.List<String> allowedOrigins=new java.util.ArrayList<>(java.util.Arrays.stream(configured.split(",")).map(String::trim).filter(v->!v.isEmpty()).toList());
-        if(!allowedOrigins.contains("https://stores-ebaf.onrender.com")) allowedOrigins.add("https://stores-ebaf.onrender.com");
+        for(String origin:List.of("https://stores-ebaf.onrender.com","http://localhost:4200","http://127.0.0.1:4200"))
+            if(!allowedOrigins.contains(origin)) allowedOrigins.add(origin);
         c.setAllowedOrigins(allowedOrigins);
         c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS")); c.setAllowedHeaders(List.of("*")); c.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource s=new UrlBasedCorsConfigurationSource(); s.registerCorsConfiguration("/**",c); return s;

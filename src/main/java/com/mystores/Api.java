@@ -27,6 +27,7 @@ record ProductView(Long id,String name,String description,BigDecimal price,int s
 
 @RestController
 @RequestMapping("/api")
+@CrossOrigin(origins={"https://stores-ebaf.onrender.com","http://localhost:4200","http://127.0.0.1:4200"})
 class Api {
     private final StoreRepository stores;
     private final ProductRepository products;
