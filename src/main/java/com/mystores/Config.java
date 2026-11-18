@@ -20,7 +20,9 @@ class Config {
     @Bean CorsConfigurationSource cors(org.springframework.core.env.Environment env){
         CorsConfiguration c=new CorsConfiguration();
         String configured=env.getProperty("app.cors.origin","http://localhost:4200,https://stores-ebaf.onrender.com");
-        c.setAllowedOrigins(java.util.Arrays.stream(configured.split(",")).map(String::trim).filter(v->!v.isEmpty()).toList());
+        java.util.List<String> allowedOrigins=new java.util.ArrayList<>(java.util.Arrays.stream(configured.split(",")).map(String::trim).filter(v->!v.isEmpty()).toList());
+        if(!allowedOrigins.contains("https://stores-ebaf.onrender.com")) allowedOrigins.add("https://stores-ebaf.onrender.com");
+        c.setAllowedOrigins(allowedOrigins);
         c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS")); c.setAllowedHeaders(List.of("*")); c.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource s=new UrlBasedCorsConfigurationSource(); s.registerCorsConfiguration("/**",c); return s;
     }
