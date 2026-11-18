@@ -1,4 +1,4 @@
-package com.mystores;
+package com.mystores.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +13,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
-class Config {
+public class Config {
     @Bean BCryptPasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
     @Bean UserDetailsService userDetailsService(){return username->{throw new UsernameNotFoundException("Use the My Stores email sign-in flow.");};}
     @Bean SecurityFilterChain filterChain(HttpSecurity http) throws Exception { return http.csrf(c->c.disable()).cors(c->{}).authorizeHttpRequests(a->a.anyRequest().permitAll()).build(); }

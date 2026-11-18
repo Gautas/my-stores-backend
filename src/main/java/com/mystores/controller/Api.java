@@ -1,4 +1,8 @@
-package com.mystores;
+package com.mystores.controller;
+
+import com.mystores.entity.*;
+import com.mystores.repository.*;
+import com.mystores.service.PasswordResetService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -28,7 +32,7 @@ record ProductView(Long id,String name,String description,BigDecimal price,int s
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins={"https://stores-ebaf.onrender.com","http://localhost:4200","http://127.0.0.1:4200"})
-class Api {
+public class Api {
     private final StoreRepository stores;
     private final ProductRepository products;
     private final CustomerRepository customers;
@@ -40,7 +44,7 @@ class Api {
     private final org.springframework.web.client.RestClient restClient;
     private final Map<String,SessionPrincipal> sessions = new ConcurrentHashMap<>();
 
-    Api(StoreRepository stores, ProductRepository products, CustomerRepository customers, SellerAccountRepository sellers,
+    public Api(StoreRepository stores, ProductRepository products, CustomerRepository customers, SellerAccountRepository sellers,
         OrderRepository orders, PasswordResetService passwordResets, BCryptPasswordEncoder encoder,
         org.springframework.core.env.Environment env, org.springframework.web.client.RestClient.Builder restClientBuilder) {
         this.stores=stores; this.products=products; this.customers=customers; this.sellers=sellers; this.orders=orders;

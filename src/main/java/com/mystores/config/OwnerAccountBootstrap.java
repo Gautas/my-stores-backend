@@ -1,4 +1,7 @@
-package com.mystores;
+package com.mystores.config;
+
+import com.mystores.entity.SellerAccount;
+import com.mystores.repository.SellerAccountRepository;
 
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -7,12 +10,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
-class OwnerAccountBootstrap implements ApplicationRunner {
+public class OwnerAccountBootstrap implements ApplicationRunner {
     private final SellerAccountRepository sellers;
     private final BCryptPasswordEncoder encoder;
     private final Environment env;
 
-    OwnerAccountBootstrap(SellerAccountRepository sellers, BCryptPasswordEncoder encoder, Environment env) {
+    public OwnerAccountBootstrap(SellerAccountRepository sellers, BCryptPasswordEncoder encoder, Environment env) {
         this.sellers=sellers; this.encoder=encoder; this.env=env;
     }
 

@@ -1,4 +1,11 @@
-package com.mystores;
+package com.mystores.service;
+
+import com.mystores.entity.Customer;
+import com.mystores.entity.PasswordResetToken;
+import com.mystores.entity.SellerAccount;
+import com.mystores.repository.CustomerRepository;
+import com.mystores.repository.PasswordResetTokenRepository;
+import com.mystores.repository.SellerAccountRepository;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
@@ -18,7 +25,7 @@ import java.util.Base64;
 import java.util.Locale;
 
 @Service
-class PasswordResetService {
+public class PasswordResetService {
     private final CustomerRepository customers;
     private final SellerAccountRepository sellers;
     private final PasswordResetTokenRepository tokens;
@@ -27,12 +34,12 @@ class PasswordResetService {
     private final Environment env;
     private final SecureRandom random=new SecureRandom();
 
-    PasswordResetService(CustomerRepository customers, SellerAccountRepository sellers, PasswordResetTokenRepository tokens,
+    public PasswordResetService(CustomerRepository customers, SellerAccountRepository sellers, PasswordResetTokenRepository tokens,
                          BCryptPasswordEncoder encoder, ObjectProvider<JavaMailSender> mailSenders, Environment env) {
         this.customers=customers; this.sellers=sellers; this.tokens=tokens; this.encoder=encoder; this.mailSenders=mailSenders; this.env=env;
     }
 
-    void requestReset(String requestedRole,String requestedEmail) {
+    public void requestReset(String requestedRole,String requestedEmail) {
         String role=normalizeRole(requestedRole);
         String email=requestedEmail.trim().toLowerCase(Locale.ROOT);
         String smtpHost=env.getProperty("spring.mail.host","").trim();
@@ -65,7 +72,7 @@ class PasswordResetService {
         }
     }
 
-    void resetPassword(String rawToken,String requestedRole,String newPassword) {
+    public void resetPassword(String rawToken,String requestedRole,String newPassword) {
         String role=normalizeRole(requestedRole);
         PasswordResetToken token=tokens.findByTokenHashAndUsedFalse(sha256(rawToken)).orElseThrow(
             ()->new ResponseStatusException(HttpStatus.BAD_REQUEST,"This reset link is invalid or has already been used."));
