@@ -4,6 +4,7 @@ import com.mystores.entity.*;
 import com.mystores.repository.*;
 import com.mystores.service.PasswordResetService;
 import com.mystores.service.SessionTokenService;
+import com.mystores.service.CatalogAssistantService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -39,17 +40,14 @@ public class Api {
     private final OrderRepository orders;
     private final PasswordResetService passwordResets;
     private final SessionTokenService sessionTokens;
+    private final CatalogAssistantService catalogAssistant;
     private final BCryptPasswordEncoder encoder;
-    private final String aiApiKey, aiModel;
-    private final org.springframework.web.client.RestClient restClient;
 
     public Api(StoreRepository stores, ProductRepository products, CustomerRepository customers, SellerAccountRepository sellers,
         OrderRepository orders, PasswordResetService passwordResets, SessionTokenService sessionTokens, BCryptPasswordEncoder encoder,
-        org.springframework.core.env.Environment env, org.springframework.web.client.RestClient.Builder restClientBuilder) {
+        CatalogAssistantService catalogAssistant) {
         this.stores=stores; this.products=products; this.customers=customers; this.sellers=sellers; this.orders=orders;
-        this.passwordResets=passwordResets; this.sessionTokens=sessionTokens; this.encoder=encoder;
-        aiApiKey=env.getProperty("app.ai.api-key",""); aiModel=env.getProperty("app.ai.model","gpt-4o-mini");
-        restClient=restClientBuilder.baseUrl("https://api.openai.com/v1").build();
+        this.passwordResets=passwordResets; this.sessionTokens=sessionTokens; this.encoder=encoder; this.catalogAssistant=catalogAssistant;
     }
 
     @PostMapping("/auth/seller/login") AuthResponse sellerLogin(@Valid @RequestBody LoginRequest r) {
@@ -102,16 +100,6 @@ public class Api {
     @PostMapping("/orders") OrderRecord buy(@RequestHeader(value="X-Session-Token",required=false) String t,@RequestBody Map<String,Object> body){ Customer c=customer(t); Long id=Long.valueOf(body.get("productId").toString()); int quantity=Integer.parseInt(body.getOrDefault("quantity",1).toString()); if(quantity<1) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Quantity must be positive"); Product p=products.findByIdAndActiveTrue(id).orElseThrow(); if(p.stock<quantity) throw new ResponseStatusException(HttpStatus.CONFLICT,"Insufficient stock"); p.stock-=quantity; products.save(p); OrderRecord o=new OrderRecord(); o.customer=c; o.product=p; o.store=p.store; o.quantity=quantity; o.total=p.price.multiply(BigDecimal.valueOf(quantity)); return orders.save(o); }
     @GetMapping("/orders/mine") List<OrderRecord> myOrders(@RequestHeader(value="X-Session-Token",required=false) String t){ return orders.findByCustomerIdOrderByIdDesc(customer(t).id); }
     @PostMapping("/ai/ask") Map<String,Object> ask(@RequestBody Map<String,String> body){
-        String question=body.getOrDefault("question","").trim(); if(question.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Question is required");
-        String q=question.toLowerCase(); List<Product> catalog=products.findByActiveTrue();
-        List<Product> found=catalog.stream().filter(p->Arrays.stream(q.split("\\W+")).filter(w->w.length()>2).anyMatch(w->(p.name+" "+Objects.toString(p.description,"")+" "+p.store.name).toLowerCase().contains(w))).limit(5).toList();
-        if(found.isEmpty()) return Map.of("answer","Mujhe catalog mein matching product nahi mila. Product name ya store ke baare mein poochhein.","sources",List.of());
-        String context=String.join("\n",found.stream().map(p->p.name+" | ₹"+p.price+" | "+(p.inStock()?"In stock":"Out of stock")+" | Store: "+p.store.name+" | "+Objects.toString(p.description,"No description")).toList());
-        String answer="Catalog se mile products: "+context;
-        if(!aiApiKey.isBlank()) try {
-            Map<?,?> response=restClient.post().uri("/chat/completions").header("Authorization","Bearer "+aiApiKey).body(Map.of("model",aiModel,"messages",List.of(Map.of("role","system","content","You are My Stores shopping assistant. Answer in the user's language using only the catalog context. If the context does not answer the question, say you could not find it. Do not invent prices or stock."),Map.of("role","user","content","Catalog context:\n"+context+"\n\nQuestion: "+question)))).retrieve().body(Map.class);
-            if(response!=null){ List<?> choices=(List<?>)response.get("choices"); if(choices!=null&&!choices.isEmpty()){ Map<?,?> choice=(Map<?,?>)choices.get(0); Map<?,?> message=(Map<?,?>)choice.get("message"); if(message!=null&&message.get("content")!=null) answer=message.get("content").toString(); } }
-        } catch(Exception ignored) { /* Preserve retrieved catalog results if the AI service is unavailable. */ }
-        return Map.of("answer",answer,"sources",found.stream().map(p->Map.of("productId",p.id,"name",p.name,"store",p.store.name)).toList());
+        return catalogAssistant.ask(body.getOrDefault("question",""));
     }
 }
