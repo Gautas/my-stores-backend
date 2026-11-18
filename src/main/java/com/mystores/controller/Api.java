@@ -3,6 +3,7 @@ package com.mystores.controller;
 import com.mystores.entity.*;
 import com.mystores.repository.*;
 import com.mystores.service.PasswordResetService;
+import com.mystores.service.SessionTokenService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -13,7 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 record LoginRequest(@Email @NotBlank String email, @NotBlank String password) {}
 record RegisterRequest(@NotBlank String name, @Email @NotBlank String email, @NotBlank @Size(min=8) String password) {}
@@ -23,7 +23,6 @@ record StoreRequest(@NotBlank String name, String description, String location) 
 record ProductRequest(@NotBlank String name, String description, @NotNull @PositiveOrZero BigDecimal price,
                       @PositiveOrZero int stock, String imageUrl, @NotNull Long storeId) {}
 record AuthResponse(String token, String role, String name) {}
-record SessionPrincipal(String role, Long customerId) {}
 record ProductView(Long id,String name,String description,BigDecimal price,int stock,String imageUrl,
                    Long storeId,String storeName,boolean inStock) {
     static ProductView of(Product p) { return new ProductView(p.id,p.name,p.description,p.price,p.stock,p.imageUrl,p.store.id,p.store.name,p.inStock()); }
@@ -39,16 +38,16 @@ public class Api {
     private final SellerAccountRepository sellers;
     private final OrderRepository orders;
     private final PasswordResetService passwordResets;
+    private final SessionTokenService sessionTokens;
     private final BCryptPasswordEncoder encoder;
     private final String aiApiKey, aiModel;
     private final org.springframework.web.client.RestClient restClient;
-    private final Map<String,SessionPrincipal> sessions = new ConcurrentHashMap<>();
 
     public Api(StoreRepository stores, ProductRepository products, CustomerRepository customers, SellerAccountRepository sellers,
-        OrderRepository orders, PasswordResetService passwordResets, BCryptPasswordEncoder encoder,
+        OrderRepository orders, PasswordResetService passwordResets, SessionTokenService sessionTokens, BCryptPasswordEncoder encoder,
         org.springframework.core.env.Environment env, org.springframework.web.client.RestClient.Builder restClientBuilder) {
         this.stores=stores; this.products=products; this.customers=customers; this.sellers=sellers; this.orders=orders;
-        this.passwordResets=passwordResets; this.encoder=encoder;
+        this.passwordResets=passwordResets; this.sessionTokens=sessionTokens; this.encoder=encoder;
         aiApiKey=env.getProperty("app.ai.api-key",""); aiModel=env.getProperty("app.ai.model","gpt-4o-mini");
         restClient=restClientBuilder.baseUrl("https://api.openai.com/v1").build();
     }
@@ -58,6 +57,9 @@ public class Api {
             ()->new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Email or password is incorrect."));
         if(!encoder.matches(r.password(),owner.passwordHash)) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Email or password is incorrect.");
         return session("SELLER",null,owner.name);
+    }
+    @GetMapping("/auth/session") Map<String,String> sessionStatus(@RequestHeader(value="X-Session-Token",required=false) String token) {
+        return Map.of("role",sessionTokens.verify(token).role());
     }
     @PostMapping("/auth/customer/register") AuthResponse register(@Valid @RequestBody RegisterRequest r) {
         if(customers.findByEmailIgnoreCase(r.email().trim()).isPresent()) throw new ResponseStatusException(HttpStatus.CONFLICT,"Email already registered.");
@@ -84,9 +86,9 @@ public class Api {
         return Map.of("message","Password updated. Sign in with your new password.");
     }
 
-    private AuthResponse session(String role,Long id,String name){ String t=UUID.randomUUID().toString(); sessions.put(t,new SessionPrincipal(role,id)); return new AuthResponse(t,role,name); }
-    private void seller(String token){ SessionPrincipal p=token==null?null:sessions.get(token); if(p==null||!p.role().equals("SELLER")) throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Seller login required."); }
-    private Customer customer(String token){ SessionPrincipal p=token==null?null:sessions.get(token); if(p==null||!p.role().equals("CUSTOMER")||p.customerId()==null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Customer login required."); return customers.findById(p.customerId()).orElseThrow(); }
+    private AuthResponse session(String role,Long id,String name){ return new AuthResponse(sessionTokens.issue(role,id),role,name); }
+    private void seller(String token){ if(!sessionTokens.verify(token).role().equals("SELLER")) throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Seller login required."); }
+    private Customer customer(String token){ SessionTokenService.Principal p=sessionTokens.verify(token); if(!p.role().equals("CUSTOMER")||p.customerId()==null) throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Customer login required."); return customers.findById(p.customerId()).orElseThrow(); }
 
     @GetMapping("/stores") List<Store> listStores(){ return stores.findByActiveTrue(); }
     @PostMapping("/seller/stores") Store createStore(@RequestHeader(value="X-Session-Token",required=false) String t,@Valid @RequestBody StoreRequest r){ seller(t); Store s=new Store(); s.name=r.name(); s.description=r.description(); s.location=r.location(); return stores.save(s); }
