@@ -5,15 +5,23 @@ import com.mystores.repository.*;
 import com.mystores.service.PasswordResetService;
 import com.mystores.service.SessionTokenService;
 import com.mystores.service.CatalogAssistantService;
+import com.mystores.service.MediaStorageService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.*;
 
 record LoginRequest(@Email @NotBlank String email, @NotBlank String password) {}
@@ -22,11 +30,11 @@ record ForgotPasswordRequest(@Email @NotBlank String email) {}
 record ResetPasswordRequest(@NotBlank String token, @NotBlank @Size(min=8) String password) {}
 record StoreRequest(@NotBlank String name, String description, String location) {}
 record ProductRequest(@NotBlank String name, String description, @NotNull @PositiveOrZero BigDecimal price,
-                      @PositiveOrZero int stock, String imageUrl, @NotNull Long storeId) {}
+                      @PositiveOrZero int stock, String imageUrl, String videoUrl, @NotNull Long storeId) {}
 record AuthResponse(String token, String role, String name) {}
-record ProductView(Long id,String name,String description,BigDecimal price,int stock,String imageUrl,
+record ProductView(Long id,String name,String description,BigDecimal price,int stock,String imageUrl,String videoUrl,
                    Long storeId,String storeName,boolean inStock) {
-    static ProductView of(Product p) { return new ProductView(p.id,p.name,p.description,p.price,p.stock,p.imageUrl,p.store.id,p.store.name,p.inStock()); }
+    static ProductView of(Product p) { return new ProductView(p.id,p.name,p.description,p.price,p.stock,p.imageUrl,p.videoUrl,p.store.id,p.store.name,p.inStock()); }
 }
 
 @RestController
@@ -41,13 +49,14 @@ public class Api {
     private final PasswordResetService passwordResets;
     private final SessionTokenService sessionTokens;
     private final CatalogAssistantService catalogAssistant;
+    private final MediaStorageService mediaStorage;
     private final BCryptPasswordEncoder encoder;
 
     public Api(StoreRepository stores, ProductRepository products, CustomerRepository customers, SellerAccountRepository sellers,
         OrderRepository orders, PasswordResetService passwordResets, SessionTokenService sessionTokens, BCryptPasswordEncoder encoder,
-        CatalogAssistantService catalogAssistant) {
+        CatalogAssistantService catalogAssistant, MediaStorageService mediaStorage) {
         this.stores=stores; this.products=products; this.customers=customers; this.sellers=sellers; this.orders=orders;
-        this.passwordResets=passwordResets; this.sessionTokens=sessionTokens; this.encoder=encoder; this.catalogAssistant=catalogAssistant;
+        this.passwordResets=passwordResets; this.sessionTokens=sessionTokens; this.encoder=encoder; this.catalogAssistant=catalogAssistant; this.mediaStorage=mediaStorage;
     }
 
     @PostMapping("/auth/seller/login") AuthResponse sellerLogin(@Valid @RequestBody LoginRequest r) {
@@ -93,10 +102,24 @@ public class Api {
     @PutMapping("/seller/stores/{id}") Store editStore(@RequestHeader(value="X-Session-Token",required=false) String t,@PathVariable Long id,@Valid @RequestBody StoreRequest r){ seller(t); Store s=stores.findById(id).orElseThrow(); s.name=r.name(); s.description=r.description(); s.location=r.location(); return stores.save(s); }
     @DeleteMapping("/seller/stores/{id}") void deleteStore(@RequestHeader(value="X-Session-Token",required=false) String t,@PathVariable Long id){ seller(t); Store s=stores.findById(id).orElseThrow(); s.active=false; stores.save(s); products.findByStoreId(id).forEach(p->{p.active=false;products.save(p);}); }
     @GetMapping("/products") List<ProductView> listProducts(@RequestParam(required=false) Long storeId){ return (storeId==null?products.findByActiveTrue():products.findByActiveTrueAndStoreId(storeId)).stream().map(ProductView::of).toList(); }
+    @PostMapping(value="/seller/media", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+    Map<String,String> uploadMedia(@RequestHeader(value="X-Session-Token",required=false) String t,
+                                   @RequestPart("file") MultipartFile file, @RequestParam String kind) {
+        seller(t);
+        if (!kind.equals("image") && !kind.equals("video")) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Media kind must be image or video.");
+        return Map.of("url", mediaStorage.store(file,kind));
+    }
+    @GetMapping("/media/{filename}")
+    ResponseEntity<Resource> getMedia(@PathVariable String filename) throws Exception {
+        Path path=mediaStorage.resolve(filename);
+        String type=Files.probeContentType(path);
+        MediaType mediaType=type==null?MediaType.APPLICATION_OCTET_STREAM:MediaType.parseMediaType(type);
+        return ResponseEntity.ok().contentType(mediaType).body(new UrlResource(path.toUri()));
+    }
     @PostMapping("/seller/products") ProductView createProduct(@RequestHeader(value="X-Session-Token",required=false) String t,@Valid @RequestBody ProductRequest r){ seller(t); Product p=new Product(); apply(p,r); return ProductView.of(products.save(p)); }
     @PutMapping("/seller/products/{id}") ProductView editProduct(@RequestHeader(value="X-Session-Token",required=false) String t,@PathVariable Long id,@Valid @RequestBody ProductRequest r){ seller(t); Product p=products.findById(id).orElseThrow(); apply(p,r); return ProductView.of(products.save(p)); }
     @DeleteMapping("/seller/products/{id}") void deleteProduct(@RequestHeader(value="X-Session-Token",required=false) String t,@PathVariable Long id){ seller(t); Product p=products.findById(id).orElseThrow(); p.active=false; products.save(p); }
-    private void apply(Product p,ProductRequest r){ p.name=r.name(); p.description=r.description(); p.price=r.price(); p.stock=r.stock(); p.imageUrl=r.imageUrl(); p.store=stores.findById(r.storeId()).filter(s->s.active).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Store not found")); }
+    private void apply(Product p,ProductRequest r){ p.name=r.name(); p.description=r.description(); p.price=r.price(); p.stock=r.stock(); p.imageUrl=r.imageUrl(); p.videoUrl=r.videoUrl(); p.store=stores.findById(r.storeId()).filter(s->s.active).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Store not found")); }
     @PostMapping("/orders") OrderRecord buy(@RequestHeader(value="X-Session-Token",required=false) String t,@RequestBody Map<String,Object> body){ Customer c=customer(t); Long id=Long.valueOf(body.get("productId").toString()); int quantity=Integer.parseInt(body.getOrDefault("quantity",1).toString()); if(quantity<1) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Quantity must be positive"); Product p=products.findByIdAndActiveTrue(id).orElseThrow(); if(p.stock<quantity) throw new ResponseStatusException(HttpStatus.CONFLICT,"Insufficient stock"); p.stock-=quantity; products.save(p); OrderRecord o=new OrderRecord(); o.customer=c; o.product=p; o.store=p.store; o.quantity=quantity; o.total=p.price.multiply(BigDecimal.valueOf(quantity)); return orders.save(o); }
     @GetMapping("/orders/mine") List<OrderRecord> myOrders(@RequestHeader(value="X-Session-Token",required=false) String t){ return orders.findByCustomerIdOrderByIdDesc(customer(t).id); }
     @PostMapping("/ai/ask") Map<String,Object> ask(@RequestBody Map<String,String> body){

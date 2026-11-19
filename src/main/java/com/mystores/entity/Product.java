@@ -16,6 +16,7 @@ public class Product {
     @Column(nullable=false) public BigDecimal price;
     public int stock;
     public String imageUrl;
+    public String videoUrl;
     @ManyToOne(optional=false) public Store store;
     public boolean active = true;
 
