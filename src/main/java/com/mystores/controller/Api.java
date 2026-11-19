@@ -30,11 +30,11 @@ record ForgotPasswordRequest(@Email @NotBlank String email) {}
 record ResetPasswordRequest(@NotBlank String token, @NotBlank @Size(min=8) String password) {}
 record StoreRequest(@NotBlank String name, String description, String location) {}
 record ProductRequest(@NotBlank String name, String description, @NotNull @PositiveOrZero BigDecimal price,
-                      @PositiveOrZero int stock, String imageUrl, String videoUrl, @NotNull Long storeId) {}
+                      @PositiveOrZero int stock, String imageUrl, List<String> imageUrls, String videoUrl, @NotNull Long storeId) {}
 record AuthResponse(String token, String role, String name) {}
-record ProductView(Long id,String name,String description,BigDecimal price,int stock,String imageUrl,String videoUrl,
+record ProductView(Long id,String name,String description,BigDecimal price,int stock,String imageUrl,List<String> imageUrls,String videoUrl,
                    Long storeId,String storeName,boolean inStock) {
-    static ProductView of(Product p) { return new ProductView(p.id,p.name,p.description,p.price,p.stock,p.imageUrl,p.videoUrl,p.store.id,p.store.name,p.inStock()); }
+    static ProductView of(Product p) { return new ProductView(p.id,p.name,p.description,p.price,p.stock,p.imageUrl,List.copyOf(p.imageUrls),p.videoUrl,p.store.id,p.store.name,p.inStock()); }
 }
 
 @RestController
@@ -119,7 +119,7 @@ public class Api {
     @PostMapping("/seller/products") ProductView createProduct(@RequestHeader(value="X-Session-Token",required=false) String t,@Valid @RequestBody ProductRequest r){ seller(t); Product p=new Product(); apply(p,r); return ProductView.of(products.save(p)); }
     @PutMapping("/seller/products/{id}") ProductView editProduct(@RequestHeader(value="X-Session-Token",required=false) String t,@PathVariable Long id,@Valid @RequestBody ProductRequest r){ seller(t); Product p=products.findById(id).orElseThrow(); apply(p,r); return ProductView.of(products.save(p)); }
     @DeleteMapping("/seller/products/{id}") void deleteProduct(@RequestHeader(value="X-Session-Token",required=false) String t,@PathVariable Long id){ seller(t); Product p=products.findById(id).orElseThrow(); p.active=false; products.save(p); }
-    private void apply(Product p,ProductRequest r){ p.name=r.name(); p.description=r.description(); p.price=r.price(); p.stock=r.stock(); p.imageUrl=r.imageUrl(); p.videoUrl=r.videoUrl(); p.store=stores.findById(r.storeId()).filter(s->s.active).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Store not found")); }
+    private void apply(Product p,ProductRequest r){ p.name=r.name(); p.description=r.description(); p.price=r.price(); p.stock=r.stock(); p.imageUrl=r.imageUrl(); if(r.imageUrls()!=null){p.imageUrls.clear();p.imageUrls.addAll(r.imageUrls());}else if(p.imageUrls.isEmpty()&&r.imageUrl()!=null&&!r.imageUrl().isBlank()){p.imageUrls.add(r.imageUrl());} p.videoUrl=r.videoUrl(); p.store=stores.findById(r.storeId()).filter(s->s.active).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Store not found")); }
     @PostMapping("/orders") OrderRecord buy(@RequestHeader(value="X-Session-Token",required=false) String t,@RequestBody Map<String,Object> body){ Customer c=customer(t); Long id=Long.valueOf(body.get("productId").toString()); int quantity=Integer.parseInt(body.getOrDefault("quantity",1).toString()); if(quantity<1) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Quantity must be positive"); Product p=products.findByIdAndActiveTrue(id).orElseThrow(); if(p.stock<quantity) throw new ResponseStatusException(HttpStatus.CONFLICT,"Insufficient stock"); p.stock-=quantity; products.save(p); OrderRecord o=new OrderRecord(); o.customer=c; o.product=p; o.store=p.store; o.quantity=quantity; o.total=p.price.multiply(BigDecimal.valueOf(quantity)); return orders.save(o); }
     @GetMapping("/orders/mine") List<OrderRecord> myOrders(@RequestHeader(value="X-Session-Token",required=false) String t){ return orders.findByCustomerIdOrderByIdDesc(customer(t).id); }
     @PostMapping("/ai/ask") Map<String,Object> ask(@RequestBody Map<String,String> body){
