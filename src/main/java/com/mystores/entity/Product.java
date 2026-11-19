@@ -12,6 +12,7 @@ import java.util.List;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
 
 @Entity
 public class Product {
@@ -21,7 +22,7 @@ public class Product {
     @Column(nullable=false) public BigDecimal price;
     public int stock;
     public String imageUrl;
-    @ElementCollection
+    @ElementCollection(fetch=FetchType.EAGER)
     @CollectionTable(name="product_images", joinColumns=@JoinColumn(name="product_id"))
     @Column(name="image_url", length=1000)
     public List<String> imageUrls = new ArrayList<>();
