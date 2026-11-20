@@ -1,42 +1,176 @@
-services:
-  - type: web
-    name: my-stores-api
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    disk:
-      name: my-stores-h2-data
-      mountPath: /app/data
-      sizeGB: 1
-    envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: prod
-      - key: APP_ENV
-        value: prod
-      - key: OWNER_EMAIL
-        sync: false
-      - key: OWNER_PASSWORD
-        sync: false
-      - key: SESSION_SECRET
-        sync: false
-      - key: OWNER_NAME
-        value: Store owner
-      - key: FRONTEND_URL
-        sync: false
-      - key: SMTP_HOST
-        sync: false
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USERNAME
-        sync: false
-      - key: SMTP_PASSWORD
-        sync: false
-      - key: MAIL_FROM
-        sync: false
-      - key: RESET_TOKEN_MINUTES
-        value: "15"
-      - key: RESET_BASE_URL
-        value: https://stores-ebaf.onrender.com
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: OPENAI_MODEL
-        value: gpt-4o-mini
+projects:
+  - name: My Stores Dev
+    environments:
+      - name: Development
+        networking:
+          isolation: enabled
+        services:
+          - type: web
+            name: my-stores-dev-api
+            repo: https://github.com/Gautas/my-stores-backend
+            branch: main
+            runtime: docker
+            plan: free
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            envVars:
+              - key: SPRING_PROFILES_ACTIVE
+                value: dev
+              - key: APP_ENV
+                value: dev
+              - key: OWNER_EMAIL
+                value: prabhanshu605+dev@gmail.com
+              - key: OWNER_PASSWORD
+                sync: false
+              - key: SESSION_SECRET
+                generateValue: true
+              - key: FRONTEND_URL
+                value: https://my-stores-dev-web.onrender.com
+              - key: RESET_BASE_URL
+                value: https://my-stores-dev-web.onrender.com
+              - key: OPENAI_API_KEY
+                sync: false
+          - type: web
+            runtime: static
+            name: my-stores-dev-web
+            repo: https://github.com/Gautas/my-stores-frontend
+            branch: main
+            buildCommand: npm install && node -e "require('fs').writeFileSync('src/api-config.ts', 'export const API_URL = '+JSON.stringify(process.env.API_URL)+';')" && npm run build -- --configuration=${ANGULAR_CONFIGURATION:-development}
+            staticPublishPath: dist/my-stores/browser
+            envVars:
+              - key: API_URL
+                value: https://my-stores-dev-api.onrender.com/api
+              - key: ANGULAR_CONFIGURATION
+                value: development
+
+  - name: My Stores Staging
+    environments:
+      - name: Staging
+        networking:
+          isolation: enabled
+        services:
+          - type: web
+            name: my-stores-staging-api
+            repo: https://github.com/Gautas/my-stores-backend
+            branch: main
+            runtime: docker
+            plan: free
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            envVars:
+              - key: SPRING_PROFILES_ACTIVE
+                value: staging
+              - key: APP_ENV
+                value: staging
+              - key: OWNER_EMAIL
+                value: prabhanshu605+staging@gmail.com
+              - key: OWNER_PASSWORD
+                sync: false
+              - key: SESSION_SECRET
+                generateValue: true
+              - key: FRONTEND_URL
+                value: https://my-stores-staging-web.onrender.com
+              - key: RESET_BASE_URL
+                value: https://my-stores-staging-web.onrender.com
+              - key: OPENAI_API_KEY
+                sync: false
+          - type: web
+            runtime: static
+            name: my-stores-staging-web
+            repo: https://github.com/Gautas/my-stores-frontend
+            branch: main
+            buildCommand: npm install && node -e "require('fs').writeFileSync('src/api-config.ts', 'export const API_URL = '+JSON.stringify(process.env.API_URL)+';')" && npm run build -- --configuration=${ANGULAR_CONFIGURATION:-staging}
+            staticPublishPath: dist/my-stores/browser
+            envVars:
+              - key: API_URL
+                value: https://my-stores-staging-api.onrender.com/api
+              - key: ANGULAR_CONFIGURATION
+                value: staging
+
+  - name: My Stores UAT
+    environments:
+      - name: UAT
+        networking:
+          isolation: enabled
+        services:
+          - type: web
+            name: my-stores-uat-api
+            repo: https://github.com/Gautas/my-stores-backend
+            branch: main
+            runtime: docker
+            plan: free
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            envVars:
+              - key: SPRING_PROFILES_ACTIVE
+                value: uat
+              - key: APP_ENV
+                value: uat
+              - key: OWNER_EMAIL
+                value: prabhanshu605+uat@gmail.com
+              - key: OWNER_PASSWORD
+                sync: false
+              - key: SESSION_SECRET
+                generateValue: true
+              - key: FRONTEND_URL
+                value: https://my-stores-uat-web.onrender.com
+              - key: RESET_BASE_URL
+                value: https://my-stores-uat-web.onrender.com
+              - key: OPENAI_API_KEY
+                sync: false
+          - type: web
+            runtime: static
+            name: my-stores-uat-web
+            repo: https://github.com/Gautas/my-stores-frontend
+            branch: main
+            buildCommand: npm install && node -e "require('fs').writeFileSync('src/api-config.ts', 'export const API_URL = '+JSON.stringify(process.env.API_URL)+';')" && npm run build -- --configuration=${ANGULAR_CONFIGURATION:-uat}
+            staticPublishPath: dist/my-stores/browser
+            envVars:
+              - key: API_URL
+                value: https://my-stores-uat-api.onrender.com/api
+              - key: ANGULAR_CONFIGURATION
+                value: uat
+
+  - name: My Stores Preprod
+    environments:
+      - name: Preproduction
+        networking:
+          isolation: enabled
+        services:
+          - type: web
+            name: my-stores-preprod-api
+            repo: https://github.com/Gautas/my-stores-backend
+            branch: main
+            runtime: docker
+            plan: free
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            envVars:
+              - key: SPRING_PROFILES_ACTIVE
+                value: preprod
+              - key: APP_ENV
+                value: preprod
+              - key: OWNER_EMAIL
+                value: prabhanshu605+preprod@gmail.com
+              - key: OWNER_PASSWORD
+                sync: false
+              - key: SESSION_SECRET
+                generateValue: true
+              - key: FRONTEND_URL
+                value: https://my-stores-preprod-web.onrender.com
+              - key: RESET_BASE_URL
+                value: https://my-stores-preprod-web.onrender.com
+              - key: OPENAI_API_KEY
+                sync: false
+          - type: web
+            runtime: static
+            name: my-stores-preprod-web
+            repo: https://github.com/Gautas/my-stores-frontend
+            branch: main
+            buildCommand: npm install && node -e "require('fs').writeFileSync('src/api-config.ts', 'export const API_URL = '+JSON.stringify(process.env.API_URL)+';')" && npm run build -- --configuration=${ANGULAR_CONFIGURATION:-preprod}
+            staticPublishPath: dist/my-stores/browser
+            envVars:
+              - key: API_URL
+                value: https://my-stores-preprod-api.onrender.com/api
+              - key: ANGULAR_CONFIGURATION
+                value: preprod
