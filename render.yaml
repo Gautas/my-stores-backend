@@ -25,9 +25,9 @@ projects:
               - key: SESSION_SECRET
                 generateValue: true
               - key: FRONTEND_URL
-                value: https://my-stores-dev-web.onrender.com
+                value: https://my-stores-dev-web-596c.onrender.com
               - key: RESET_BASE_URL
-                value: https://my-stores-dev-web.onrender.com
+                value: https://my-stores-dev-web-596c.onrender.com
               - key: OPENAI_API_KEY
                 sync: false
           - type: web
@@ -39,7 +39,7 @@ projects:
             staticPublishPath: dist/my-stores/browser
             envVars:
               - key: API_URL
-                value: https://my-stores-dev-api.onrender.com/api
+                value: https://my-stores-dev-api-596c.onrender.com/api
               - key: ANGULAR_CONFIGURATION
                 value: development
 
@@ -69,9 +69,9 @@ projects:
               - key: SESSION_SECRET
                 generateValue: true
               - key: FRONTEND_URL
-                value: https://my-stores-staging-web.onrender.com
+                value: https://my-stores-staging-web-596c.onrender.com
               - key: RESET_BASE_URL
-                value: https://my-stores-staging-web.onrender.com
+                value: https://my-stores-staging-web-596c.onrender.com
               - key: OPENAI_API_KEY
                 sync: false
           - type: web
@@ -83,7 +83,7 @@ projects:
             staticPublishPath: dist/my-stores/browser
             envVars:
               - key: API_URL
-                value: https://my-stores-staging-api.onrender.com/api
+                value: https://my-stores-staging-api-596c.onrender.com/api
               - key: ANGULAR_CONFIGURATION
                 value: staging
 
@@ -113,9 +113,9 @@ projects:
               - key: SESSION_SECRET
                 generateValue: true
               - key: FRONTEND_URL
-                value: https://my-stores-uat-web.onrender.com
+                value: https://my-stores-uat-web-596c.onrender.com
               - key: RESET_BASE_URL
-                value: https://my-stores-uat-web.onrender.com
+                value: https://my-stores-uat-web-596c.onrender.com
               - key: OPENAI_API_KEY
                 sync: false
           - type: web
@@ -127,7 +127,7 @@ projects:
             staticPublishPath: dist/my-stores/browser
             envVars:
               - key: API_URL
-                value: https://my-stores-uat-api.onrender.com/api
+                value: https://my-stores-uat-api-596c.onrender.com/api
               - key: ANGULAR_CONFIGURATION
                 value: uat
 
@@ -157,9 +157,9 @@ projects:
               - key: SESSION_SECRET
                 generateValue: true
               - key: FRONTEND_URL
-                value: https://my-stores-preprod-web.onrender.com
+                value: https://my-stores-preprod-web-596c.onrender.com
               - key: RESET_BASE_URL
-                value: https://my-stores-preprod-web.onrender.com
+                value: https://my-stores-preprod-web-596c.onrender.com
               - key: OPENAI_API_KEY
                 sync: false
           - type: web
@@ -171,6 +171,6 @@ projects:
             staticPublishPath: dist/my-stores/browser
             envVars:
               - key: API_URL
-                value: https://my-stores-preprod-api.onrender.com/api
+                value: https://my-stores-preprod-api-596c.onrender.com/api
               - key: ANGULAR_CONFIGURATION
                 value: preprod
